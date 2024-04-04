@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:horecah/views/profile.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../view_models/form2_vm.dart';
 
@@ -16,12 +17,27 @@ class Form2 extends StatefulWidget {
 class _SecondPageState extends State<Form2> {
   late TextEditingController _aboutController;
   late TextEditingController _profileLinkController;
+  late String _enteredText; // Store the entered text temporarily
 
   @override
   void initState() {
     super.initState();
     _aboutController = TextEditingController();
     _profileLinkController = TextEditingController();
+    _enteredText = ''; // Initialize entered text
+    _loadSavedData(); // Load saved data when the form initializes
+  }
+
+  // Function to load saved data
+  _loadSavedData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedText = prefs.getString('saved_text');
+    if (savedText != null) {
+      setState(() {
+        _enteredText = savedText;
+        //_aboutController.text = savedText;
+      });
+    }
   }
 
   @override
@@ -47,7 +63,10 @@ class _SecondPageState extends State<Form2> {
                 ),
                 child: TextField(
                   controller: _aboutController,
-                  onChanged: (value) => viewModel.info = value,
+                  onChanged: (value) {
+                    _enteredText = value; // Store entered text
+                    viewModel.info = value;
+                  },
                   maxLines: null,
                   keyboardType: TextInputType.multiline,
                   decoration: InputDecoration(
@@ -61,8 +80,6 @@ class _SecondPageState extends State<Form2> {
                 ),
               ),
 
-
-
               SizedBox(height: 16), // Add some space
               // Buttons
               Row(
@@ -73,8 +90,10 @@ class _SecondPageState extends State<Form2> {
                     child: ElevatedButton(
                       onPressed: () {
                         setState(() {
-                          viewModel.info = 'Default AI Text';
+                          // Use the entered text as a prompt for AI-generated text
+                          viewModel.info = '$_enteredText';
                           _aboutController.text = viewModel.info;
+                          // Save entered text
                         });
                       },
                       style: ElevatedButton.styleFrom(
@@ -222,6 +241,7 @@ class _SecondPageState extends State<Form2> {
                                           onPressed: () {
                                             // Handle submission
                                             Navigator.pop(context);
+                                            _saveData(_enteredText);
                                             Navigator.pushNamed(context, '/profile');
                                           },
                                           child: Text('Confirm', style: GoogleFonts.poppins(color: Colors.white)),
@@ -303,5 +323,9 @@ class _SecondPageState extends State<Form2> {
     _aboutController.dispose();
     _profileLinkController.dispose();
     super.dispose();
+  }
+  _saveData(String text) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('saved_text', text);
   }
 }
